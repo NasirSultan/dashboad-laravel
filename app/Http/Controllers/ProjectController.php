@@ -10,12 +10,13 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
+            'name' => 'required|max:255',
+            
         ]);
 
         Project::create([
             'name' => $request->name,
+            // $user->name = $request->name;
             'price' => $request->price,
         ]);
 

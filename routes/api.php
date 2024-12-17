@@ -9,6 +9,6 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ClassroomController;
 
-Route::get('/classrooms', [ClassroomController::class, 'index']); // Get all classrooms
-Route::get('/classrooms/{id}', [ClassroomController::class, 'show']);
+Route::get('/classroom', [ClassroomController::class, 'index']); // Get all classrooms
+// Route::get('/classrooms/{id}', [ClassroomController::class, 'show']);
 Route::get('/classroom', [ClassroomController::class, 'show']);

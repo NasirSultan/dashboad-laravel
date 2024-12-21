@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('students', function (Blueprint $table) {
-            $table->id(); // Auto-increment ID
-            $table->string('name'); // Student name
-            $table->timestamps(); // Created_at & Updated_at
+        Schema::table('users', function (Blueprint $table) {
+            // Adding 'role' column to the 'users' table
+            $table->string('role')->default('user');  // Default value is 'user'
         });
     }
 
@@ -23,6 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('students');
+        Schema::table('users', function (Blueprint $table) {
+            // Dropping the 'role' column
+            $table->dropColumn('role');
+        });
     }
 };

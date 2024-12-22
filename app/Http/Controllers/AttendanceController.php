@@ -107,10 +107,10 @@ class AttendanceController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:255',
         ]);
-
+    
         // Get the authenticated user
         $user = Auth::user();
-
+    
         // Create a new leave request
         DB::table('leave_requests')->insert([
             'user_id' => $user->id,
@@ -121,11 +121,14 @@ class AttendanceController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
+    
+        // Log the response for debugging
+        \Log::info('Leave request sent successfully');
+    
+        // Return JSON response
         return response()->json(['message' => 'Leave request sent successfully']);
     }
-
-
+    
 
 
 

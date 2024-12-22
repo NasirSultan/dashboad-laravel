@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LeaveRequestController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -44,3 +45,25 @@ Route::middleware('auth:sanctum')->get('/user', [ClassroomController::class, 'ge
 
 
 Route::middleware('auth:sanctum')->put('/user/update-profile', [ClassroomController::class, 'updateProfile']);
+
+
+
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/leave-requests', [LeaveRequestController::class, 'store']); // User: Submit leave request
+    Route::get('/leave-requests', [LeaveRequestController::class, 'index']); // Admin: View all requests
+    Route::patch('/leave-requests/{id}', [LeaveRequestController::class, 'updateStatus']); // Admin: Approve/Reject
+});
+
+
+
+
+// routes/api.php
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Admin route to manage leave requests (view all and approve/reject)
+    Route::post('/admin/manage-leave-requests', [LeaveRequestController::class, 'manageLeaveRequests']);
+});

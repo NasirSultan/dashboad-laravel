@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Attendance;
+use App\Models\User;
 
 class AttendanceController extends Controller
 {
@@ -150,6 +153,114 @@ class AttendanceController extends Controller
 
         return response()->json(['leave_requests' => $leaveRequests]);
     }
+
+
+
+
+// admin crud
+
+// Get all attendances
+
+public function index()
+{
+    try {
+        // Eager load the user relationship
+        $attendances = Attendance::with('user')->get();
+
+        // Format the data to include user names
+        $attendancesWithNames = $attendances->map(function($attendance) {
+            return [
+                'attendance_id' => $attendance->id,
+                'user_id' => $attendance->user_id,
+                'status' => $attendance->status,
+                'date' => $attendance->date,
+                'user_name' => $attendance->user->name, // Access the user's name
+            ];
+        });
+
+        return response()->json($attendancesWithNames);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+
+// Add attendance
+public function store(Request $request)
+{
+    try {
+        // Validate input
+        $request->validate([
+            'user_id' => 'required|exists:users,id',  // Ensure the user exists
+            'status' => 'required|string',
+            'date' => 'required|date',
+        ]);
+
+        // Create new attendance record
+        $attendance = new Attendance();
+        $attendance->user_id = $request->user_id;  // Store user_id instead of student_id
+        $attendance->status = $request->status;
+        $attendance->date = $request->date;
+        $attendance->save();
+
+        // Retrieve the attendance record along with the user name
+        $attendance = Attendance::with('user')
+            ->where('id', $attendance->id)
+            ->first();
+
+        // Return the response with the user_name included
+        return response()->json([
+            'message' => 'Attendance added successfully!',
+            'attendance' => $attendance,
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+// Update attendance based on filters
+public function update(Request $request)
+{
+    try {
+        // Assuming you're updating based on user_id and date
+        $attendance = Attendance::where('user_id', $request->user_id)
+                                ->where('date', $request->date)
+                                ->first();
+
+        if ($attendance) {
+            $attendance->status = $request->status;
+            $attendance->save();
+            return response()->json(['message' => 'Attendance updated successfully!']);
+        } else {
+            return response()->json(['error' => 'Attendance not found'], 404);
+        }
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+
+// Delete attendance based on filters
+public function destroy(Request $request)
+{
+    try {
+        // Assuming you're deleting based on user_id and date
+        $attendance = Attendance::where('user_id', $request->user_id)
+                                ->where('date', $request->date)
+                                ->first();
+
+        if ($attendance) {
+            $attendance->delete();
+            return response()->json(['message' => 'Attendance deleted successfully!']);
+        } else {
+            return response()->json(['error' => 'Attendance not found'], 404);
+        }
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
 }
 
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Model;
 
 class User extends Authenticatable
 {
@@ -47,5 +48,13 @@ class User extends Authenticatable
     public function isUser()
     {
         return $this->role === self::ROLE_USER;
+    }
+}
+class Attendance extends Model
+{
+    // Define the relationship between Attendance and User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

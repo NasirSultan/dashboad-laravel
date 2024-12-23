@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LeaveRequestController;
 
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // routes/api.php
@@ -66,4 +67,29 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // Admin route to manage leave requests (view all and approve/reject)
     Route::post('/admin/manage-leave-requests', [LeaveRequestController::class, 'manageLeaveRequests']);
+});
+
+
+// admin crud operation on attendance
+// Route::middleware('auth:sanctum')->group(function () {
+//     // Admin routes
+//     Route::get('/attendances', [AttendanceController::class, 'getAllAttendances']); // View all
+//     Route::post('/attendances', [AttendanceController::class, 'addAttendance']);   // Add attendance
+//     Route::put('/attendances/{id}', [AttendanceController::class, 'updateAttendance']); // Update
+//     Route::delete('/attendances/{id}', [AttendanceController::class, 'deleteAttendance']); // Delete
+// });
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Get all attendance records
+    Route::get('/attendances', [AttendanceController::class, 'index']);
+    
+    // Add attendance
+    Route::post('/attendances', [AttendanceController::class, 'store']);
+    
+    // Update attendance based on filters (for example, by student_id or date)
+    Route::put('/attendances/update', [AttendanceController::class, 'update']); 
+    
+    // Delete attendance based on filters (e.g., by student_id or date)
+    Route::delete('/attendances/delete', [AttendanceController::class, 'destroy']);
 });

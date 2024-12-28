@@ -17,8 +17,11 @@ class CreateAttendanceTable extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Assuming the users table contains student information
             $table->date('date');
-            $table->enum('status', ['present', 'absent']); // To track the attendance status
+            $table->enum('status', ['present', 'absent', 'leave']); // Added 'leave' status
             $table->timestamps();
+            
+            // Ensuring that each user can only have one attendance per day
+            $table->unique(['user_id', 'date']);
         });
     }
 

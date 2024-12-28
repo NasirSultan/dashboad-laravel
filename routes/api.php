@@ -93,3 +93,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // Delete attendance based on filters (e.g., by student_id or date)
     Route::delete('/attendances/delete', [AttendanceController::class, 'destroy']);
 });
+
+
+// routes/api.php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('attendance-report', [AttendanceController::class, 'getUserSpecificReport']);
+});
+
+
+
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Example route for attendance report, restricted to admin role
+    Route::post('/attendance-report-grade', [AttendanceController::class, 'attendanceGradeReportForSelectedOrAllUsers']);
+});
+
+
+
+
+Route::middleware('auth:sanctum')->post('/update-profile-picture', [ClassroomController::class, 'updateProfilePicture']);

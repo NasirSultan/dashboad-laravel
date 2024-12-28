@@ -217,16 +217,23 @@ public function register(Request $req)
    // Method to view user details using token authentication
 
 
-public function getUserDetails(Request $request)
-{
-    $user = Auth::user(); // Get the authenticated user
-    return response()->json([
-        'name' => $user->name,
-        'email' => $user->email,
-        'role' => $user->role,
-        'profile_picture' => $user->profile_picture, // Return profile picture URL
-    ]);
-}
+   public function getUserDetails(Request $request)
+   {
+       $user = Auth::user(); // Get the authenticated user
+   
+       // Construct the full URL for the profile picture if it exists
+       $profilePictureUrl = $user->profile_picture
+           ? asset('storage/' . $user->profile_picture) // If profile picture exists, return the full URL
+           : null; // Or return null if no profile picture is set
+   
+       return response()->json([
+           'name' => $user->name,
+           'email' => $user->email,
+           'role' => $user->role,
+           'profile_picture' => $profilePictureUrl, // Return the full URL for the profile picture
+       ]);
+   }
+   
 
    
 
@@ -294,4 +301,44 @@ public function updateProfile(Request $req)
         ], 200);
     }
 
+
+    public function updateProfilePicture(Request $req)
+    {
+        // Validate the request
+        $validator = Validator::make($req->all(), [
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Validate as an image
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+    
+        // Get the authenticated user
+        $user = auth()->user();
+    
+        // Check if a profile picture is uploaded
+        if ($req->hasFile('profile_picture')) {
+            // Delete the old profile picture if it exists
+            if ($user->profile_picture && \Storage::exists('public/' . $user->profile_picture)) {
+                \Storage::delete('public/' . $user->profile_picture);
+            }
+    
+            // Store the new profile picture
+            $imagePath = $req->file('profile_picture')->store('profile_pictures', 'public');
+            $user->profile_picture = $imagePath;
+    
+            // Save the user with the new profile picture
+            $user->save();
+    
+            return response()->json([
+                'message' => 'Profile picture updated successfully',
+                'profile_picture_url' => asset('storage/' . $imagePath),
+            ], 200);
+        }
+    
+        return response()->json(['error' => 'No profile picture uploaded'], 400);
+    }
+    
+
+    
 }

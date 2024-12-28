@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Attendance;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade as PDF;
 
 class AttendanceController extends Controller
 {
@@ -260,6 +261,177 @@ public function destroy(Request $request)
         return response()->json(['error' => $e->getMessage()], 500);
     }
 }
+
+// app/Http/Controllers/AttendanceController.php
+// public function getUserSpecificReport(Request $request)
+// {
+//     // Get the authenticated user
+//     $user = $request->user();
+
+//     // Check if the authenticated user is not an admin
+//     if ($user->role !== 'admin') {
+//         return response()->json(['error' => 'Unauthorized'], 403); // Unauthorized if not admin
+//     }
+
+//     // Validate input data
+//     $validated = $request->validate([
+//         'user_id' => 'required|exists:users,id',
+//         'from_date' => 'required|date',
+//         'to_date' => 'required|date',
+//     ]);
+
+//     // Fetch attendance records for the specific user within the date range
+//     $attendance = Attendance::where('user_id', $validated['user_id'])
+//         ->whereBetween('date', [$validated['from_date'], $validated['to_date']])
+//         ->join('users', 'users.id', '=', 'attendances.user_id') // Corrected table name
+//         ->select('attendances.*', 'users.name') // Corrected table name
+//         ->get();
+
+//     // Return the attendance data as JSON
+//     return response()->json($attendance);
+// }
+
+public function getUserSpecificReport(Request $request)
+{
+    // Get the authenticated user
+    $user = $request->user();
+
+    // Check if the authenticated user is an admin
+    if ($user->role !== 'admin') {
+        return response()->json(['error' => 'Unauthorized'], 403); // Unauthorized if not admin
+    }
+
+    // Validate input data
+    $validated = $request->validate([
+        'user_id' => 'nullable|exists:users,id', // Ensure user_id is valid if provided
+        'from_date' => 'required|date|before_or_equal:to_date', // Ensure from_date is before to_date
+        'to_date' => 'required|date',
+    ]);
+
+    // Build the query
+    $query = Attendance::query()
+        ->whereBetween('attendances.date', [$validated['from_date'], $validated['to_date']])
+        // Left join with leave_requests table to get the leave status
+        ->leftJoin('leave_requests', function ($join) {
+            $join->on('leave_requests.user_id', '=', 'attendances.user_id')
+                ->on('leave_requests.date', '=', 'attendances.date');
+        })
+        // Join with the users table to get the user's name
+        ->join('users', 'users.id', '=', 'attendances.user_id') 
+        ->select('attendances.*', 'users.name', 'leave_requests.status as leave_status');
+
+    // If user_id is provided, filter by the specific user
+    if (isset($validated['user_id']) && $validated['user_id']) {
+        $query->where('attendances.user_id', $validated['user_id']);
+    }
+
+    // Execute the query
+    $attendance = $query->get();
+
+    // If no records found, return an appropriate message
+    if ($attendance->isEmpty()) {
+        return response()->json(['message' => 'No attendance records found for the given criteria.'], 404);
+    }
+
+    // Return the attendance data as JSON
+    return response()->json($attendance);
+}
+
+
+
+
+public function attendanceGradeReportForSelectedOrAllUsers(Request $request)
+{
+    // Ensure the user is authenticated
+    $user = $request->user();
+
+    // Check if the authenticated user is an admin
+    if ($user->role !== 'admin') {
+        return response()->json(['error' => 'Unauthorized'], 403); // Unauthorized if not admin
+    }
+
+    // Validate the request
+    $validated = $request->validate([
+        'user_ids' => 'nullable|array', // user_ids are optional
+        'user_ids.*' => 'exists:users,id', // Ensure all user IDs exist in the users table, if provided
+        'from_date' => 'required|date',
+        'to_date' => 'required|date|after_or_equal:from_date',
+    ]);
+
+    // Get the list of user IDs from the request, if provided
+    $userIds = $request->input('user_ids', []); // Default to an empty array if no user_ids are provided
+
+    // Fetch users with the role 'user', either specific user IDs or all
+    if (!empty($userIds)) {
+        $users = User::where('role', 'user')->whereIn('id', $userIds)->get();
+    } else {
+        $users = User::where('role', 'user')->get(); // Fetch all users with role 'user'
+    }
+
+    // Initialize an empty array to store the attendance report
+    $attendanceReport = [];
+
+    // Loop through each selected user (or all users) and generate their attendance report
+    foreach ($users as $user) {
+        // Get attendance records for the user within the specified date range
+        $attendanceRecords = Attendance::where('user_id', $user->id)
+                                        ->whereBetween('date', [$validated['from_date'], $validated['to_date']])
+                                        ->get();
+
+        // Initialize counters for Present, Absent, and Leave days
+        $presentCount = 0;
+        $absentCount = 0;
+        $leaveCount = 0;
+
+        // Loop through the attendance records
+        foreach ($attendanceRecords as $record) {
+            if ($record->status === 'present') {
+                $presentCount++;
+            } elseif ($record->status === 'absent') {
+                $absentCount++;
+            } elseif ($record->status === 'leave') {
+                $leaveCount++;
+            }
+        }
+
+        // Calculate grade based on present days
+        $grade = $this->calculateGrade($presentCount);
+
+        // Add the user's attendance data to the report
+        $attendanceReport[] = [
+            'user_id' => $user->id, // Ensure the user ID is included
+            'user_name' => $user->name,
+            'attendance_period' => "{$validated['from_date']} to {$validated['to_date']}",
+            'present_days' => $presentCount,
+            'absent_days' => $absentCount,
+            'leave_days' => $leaveCount,
+            'grade' => $grade,
+        ];
+    }
+
+    // Return the final attendance report
+    return response()->json($attendanceReport);
+}
+
+// Helper function to calculate grade based on present days
+public function calculateGrade($attendanceCount)
+{
+    if ($attendanceCount >= 16) {
+        return 'A';
+    } elseif ($attendanceCount >= 13) {
+        return 'B';
+    } elseif ($attendanceCount >= 10) {
+        return 'C';
+    } elseif ($attendanceCount >= 6) {
+        return 'D';
+    } else {
+        return 'F';
+    }
+}
+
+
+
+
 
 }
 

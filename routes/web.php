@@ -10,3 +10,4 @@ Route::get('/', function () {
 use App\Http\Controllers\UserController;
 
 Route::get('/greet', [UserController::class, 'greetUser']);
+Route::get('/continer', [UserController::class, 'Container']);

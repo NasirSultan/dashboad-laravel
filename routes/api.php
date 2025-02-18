@@ -8,3 +8,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('/send-mail', [MailController::class, 'sendMail']);
+use App\Http\Controllers\UserController;
+
+
+Route::resource('users', UserController::class);

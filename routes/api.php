@@ -8,3 +8,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('/send-mail', [MailController::class, 'sendMail']);
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MessageController;
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/message', [MessageController::class, 'scheduleMessage']);
+
+Route::post('/schedule-message', [MessageController::class, 'scheduleMessage']);
+Route::get('/scheduled-messages', [MessageController::class, 'getScheduledMessages']);
